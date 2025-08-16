@@ -1,8 +1,12 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Cart as CartType, CartItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
+import CheckoutForm from './CheckoutForm';
 
 interface CartProps {
   cart: CartType;
@@ -16,11 +20,28 @@ interface CartProps {
  * Exibe itens do carrinho, permite editar quantidades e finalizar pedido
  */
 const Cart = ({ cart, onUpdateQuantity, onRemoveItem, onClearCart }: CartProps) => {
+  const [showCheckout, setShowCheckout] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(price);
+  };
+
+  const handleFinalizarPedido = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutSuccess = () => {
+    onClearCart();
+    setShowCheckout(false);
   };
 
   const CartItemComponent = ({ item }: { item: CartItem }) => (
@@ -153,10 +174,18 @@ const Cart = ({ cart, onUpdateQuantity, onRemoveItem, onClearCart }: CartProps) 
             </div>
 
             <Button
+              onClick={handleFinalizarPedido}
               className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
               size="lg"
             >
-              Finalizar Pedido
+              {user ? (
+                'Finalizar Pedido'
+              ) : (
+                <>
+                  <User className="w-4 h-4 mr-2" />
+                  Entrar para finalizar
+                </>
+              )}
             </Button>
 
             <p className="text-xs text-muted-foreground text-center">
@@ -165,6 +194,13 @@ const Cart = ({ cart, onUpdateQuantity, onRemoveItem, onClearCart }: CartProps) 
           </div>
         )}
       </SheetContent>
+
+      <CheckoutForm
+        cart={cart}
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        onSuccess={handleCheckoutSuccess}
+      />
     </Sheet>
   );
 };
